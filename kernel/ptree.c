@@ -39,7 +39,8 @@ SYSCALL_DEFINE3(ptree, struct prinfo __user *, buf, int __user *, nr, int, root_
 	 *   populate a prinfo entry, store it in our allocated buffer at index [actual_entries]
 	 *   increment actual_entries
 	 *   if actual_entries == max_entries, stop iterating.
-	 * be sure not to do anything blocking (like allocation) in this section :)
+	 * be sure not to do anything blocking (like allocation) in this section
+	 * between rcu_read_lock and rcu_read_unlock :)
 	 */
 	
 	rcu_read_unlock();
