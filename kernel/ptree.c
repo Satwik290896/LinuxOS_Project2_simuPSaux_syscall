@@ -21,30 +21,38 @@ SYSCALL_DEFINE3(ptree, struct prinfo __user *, buf, int __user *, nr, int, root_
 	if (buf == NULL || nr == NULL)
 		return -EINVAL;
 
-	/* TODO: if buf or nr are outside accessible address space, return -EFAULT */
+	/* copy *nr from user space into max_entries */
+	if (copy_from_user(&max_entries, nr, sizeof(int)))
+		return -EFAULT;
 
-	max_entries = *nr; /* TODO: should this be done another way, e.g. with copy_from_user? */
 	if (max_entries < 1)
 		return -EINVAL;
 
-	/* TODO: allocate a buffer for up to 'max_entries' prinfo entries. */
+	/* TODO: allocate a buffer for up to 'max_entries' prinfo entries.
+	 * the total space needed will be (max_entries * sizeof(struct prinfo)).
+	 */
 
 	rcu_read_lock();
-	
+
 	/* TODO: from root_task, do an iterative BFS.
 	 * for each task_struct that we iterate on:
-	 *   populate a prinfo entry, store it in our allocated buffer
+	 *   populate a prinfo entry, store it in our allocated buffer at index [actual_entries]
 	 *   increment actual_entries
-	 *   if actual_entries == max_entries, stop iterating
+	 *   if actual_entries == max_entries, stop iterating.
+	 * be sure not to do anything blocking (like allocation) in this section :)
 	 */
 	
 	rcu_read_unlock();
 
         /* TODO: copy our stored prinfo entries into *buf using copy_to_user.
+	 *  if this fails, return -EFAULT
 	 * then, delete our allocated buffer
-	 * also, set *nr to actual_entries
 	 */
 
+	/* update *nr with how many entries were copied */
+	if (copy_to_user(nr, &actual_entries, sizeof(int)))
+		return -EFAULT;
+	
 	/* delete this later, this is just to silence unused variable warnings for now */
 	(void) root_task;
 	(void) actual_entries;
