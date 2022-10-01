@@ -2,7 +2,6 @@
 #define __PRINTFO_H
 
 #include <linux/sched.h>
-#include <unistd.h>
 
 struct prinfo {
         pid_t parent_pid;       /* process id of parent */
