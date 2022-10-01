@@ -16,21 +16,16 @@ static struct task_struct *get_root(int root_pid)
 	return find_task_by_vpid(root_pid);
 }
 
-void assignBufferValue(struct prinfo *buf, struct task_struct *p, int *count){
+void assignBufferValue(struct prinfo *buf, struct task_struct *p, int *count, int level){
 	buf[*count].pid = p->pid;
 	buf[*count].parent_pid = p->real_parent->pid;
 	buf[*count].uid = (int)p->real_cred->uid.val;
+	buf[*count].level = level;
 	strcpy(buf[*count].comm, p->comm);
-	printk("%d,%d,%d,%s\n\n", buf[*count].pid, buf[*count].parent_pid, buf[*count].uid, buf[*count].comm);
-	printk("%d\n", *count);
+	/* printk("%d, %d, %d, %d, %s\n\n", buf[*count].pid, buf[*count].parent_pid, buf[*count].uid, level, buf[*count].comm);
+	printk("%d\n", *count); */
 	(*count)++;
 }
-
-struct ptask{
-	int pid;
-	int level;
-	struct list_head *list;
-};
 
 SYSCALL_DEFINE3(ptree, struct prinfo __user *, buf, int __user *, nr, int, root_pid)
 {
@@ -39,10 +34,10 @@ SYSCALL_DEFINE3(ptree, struct prinfo __user *, buf, int __user *, nr, int, root_
 	int actual_entries = 0;
 	struct prinfo *buffer;
 	struct task_struct *p, *task;
-	int count = 0;
 	struct list_head *list;
+	int buf_q = 0;
+	int i;
 
-	printk("Hello world from systemcall\n");
 	if (buf == NULL || nr == NULL)
 		return -EINVAL;
 
@@ -59,7 +54,8 @@ SYSCALL_DEFINE3(ptree, struct prinfo __user *, buf, int __user *, nr, int, root_
 	buffer = kmalloc(max_entries * sizeof(struct prinfo), GFP_KERNEL);
 	if(!buffer)
 		return -EFAULT;
-	
+	for(i = 0; i < max_entries; i++)
+		buffer[i].pid = -1;
 
 	rcu_read_lock();
 
@@ -72,22 +68,28 @@ SYSCALL_DEFINE3(ptree, struct prinfo __user *, buf, int __user *, nr, int, root_
 	 * between rcu_read_lock and rcu_read_unlock :)
 	 */
 	p = root_task;
-	buffer[count].level = 0;
-	assignBufferValue(buffer, p, &count);
+	assignBufferValue(buffer, p, &actual_entries, 0);
 
-	list_for_each(list, &p->children){
-		if(count >= max_entries)
-			break;
-		task = list_entry(list, struct task_struct, sibling);
-		assignBufferValue(buffer, task, &count);
+	while(buffer[buf_q].pid >= 0 && actual_entries < max_entries){
+		// printk("parent pid: %d", buffer[buf_q].pid);
+		p = get_root(buffer[buf_q].pid);
+		list_for_each(list, &p->children){
+			if(actual_entries >= max_entries)
+				break;
+			task = list_entry(list, struct task_struct, sibling);
+			assignBufferValue(buffer, task, &actual_entries, buffer[buf_q].level + 1);
+		}
+		buf_q++;
 	}
 	
 	rcu_read_unlock();
 
-        /* TODO: copy our stored prinfo entries into *buf using copy_to_user.
+    /* TODO: copy our stored prinfo entries into *buf using copy_to_user.
 	 *  if this fails, return -EFAULT
 	 * then, delete our allocated buffer
 	 */
+	if(copy_to_user(buf, buffer, actual_entries * sizeof(struct prinfo)))
+		return -EFAULT;
 
 	/* update *nr with how many entries were copied */
 	if (copy_to_user(nr, &actual_entries, sizeof(int)))
