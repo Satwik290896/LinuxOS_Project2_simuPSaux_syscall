@@ -17,7 +17,8 @@ static struct task_struct *get_root(int root_pid)
 }
 
 /* populate an entry in buf with the info from task_struct p. */
-void assignBufferValue(struct prinfo *buf, struct task_struct *p, int *count, int level)
+void assignBufferValue(struct prinfo *buf, struct task_struct *p,
+		       int *count, int level)
 {
 	buf[*count].pid = p->pid;
 	buf[*count].parent_pid = p->real_parent->pid;
@@ -27,23 +28,44 @@ void assignBufferValue(struct prinfo *buf, struct task_struct *p, int *count, in
 	(*count)++;
 }
 
-SYSCALL_DEFINE3(ptree, struct prinfo __user *, buf, int __user *, nr, int, root_pid)
+int ptree_bfs_internal(struct prinfo *buffer,
+		       struct task_struct *p,
+		       int max_entries,
+		       int *actual_entries,
+		       int *buf_q)
+{
+	struct list_head *list;
+	struct task_struct *task;
+
+	p = get_root(buffer[*buf_q].pid);
+	list_for_each(list, &p->children) {
+		if (*actual_entries >= max_entries)
+			return -1;
+		task = list_entry(list, struct task_struct, sibling);
+		assignBufferValue(buffer, task, actual_entries,
+				  buffer[*buf_q].level + 1);
+	}
+	(*buf_q)++;
+
+	return 0;
+}
+
+SYSCALL_DEFINE3(ptree, struct prinfo __user *, buf, int __user *, nr,
+		int, root_pid)
 {
 	struct task_struct *root_task = get_root(root_pid);
 	int max_entries;
 	int actual_entries = 0;
 	struct prinfo *buffer;
-	struct task_struct *p, *task;
-	struct list_head *list;
+	struct task_struct *p;
 	int buf_q = 0;
 	int i;
 
 	if (buf == NULL || nr == NULL)
 		return -EINVAL;
 
-	if (root_task == NULL) {
+	if (root_task == NULL)
 		return -ESRCH;
-	}
 
 	/* copy *nr from user space into max_entries */
 	if (copy_from_user(&max_entries, nr, sizeof(int)))
@@ -52,7 +74,7 @@ SYSCALL_DEFINE3(ptree, struct prinfo __user *, buf, int __user *, nr, int, root_
 	if (max_entries < 1)
 		return -EINVAL;
 
-	buffer = kmalloc(max_entries * sizeof(struct prinfo), GFP_KERNEL);
+	buffer = kmalloc_array(max_entries, sizeof(struct prinfo), GFP_KERNEL);
 	if (!buffer)
 		return -ENOMEM;
 	for (i = 0; i < max_entries; i++)
@@ -69,19 +91,15 @@ SYSCALL_DEFINE3(ptree, struct prinfo __user *, buf, int __user *, nr, int, root_
 	 *     add the child into buffer, for up to *nr total processes
 	 */
 	while (buffer[buf_q].pid >= 0 && actual_entries < max_entries) {
-		p = get_root(buffer[buf_q].pid);
-		list_for_each(list, &p->children) {
-			if (actual_entries >= max_entries) break;
-			task = list_entry(list, struct task_struct, sibling);
-			assignBufferValue(buffer, task, &actual_entries, buffer[buf_q].level + 1);
-		}
-		buf_q++;
+		if (ptree_bfs_internal(buffer, p, max_entries,
+				       &actual_entries, &buf_q) == -1)
+			break;
 	}
-	
+
 	rcu_read_unlock();
 
 	/* copy stored prinfo entries into buf, and update *nr. */
-	if(copy_to_user(buf, buffer, actual_entries * sizeof(struct prinfo)))
+	if (copy_to_user(buf, buffer, actual_entries * sizeof(struct prinfo)))
 		return -EFAULT;
 
 	if (copy_to_user(nr, &actual_entries, sizeof(int)))

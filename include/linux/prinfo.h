@@ -4,10 +4,10 @@
 #include <linux/sched.h>
 
 struct prinfo {
-        pid_t parent_pid;       /* process id of parent */
-        pid_t pid;              /* process id */
-        uid_t uid;              /* user id of process owner */
-        char comm[16];          /* name of program executed */
-        int level;              /* level of this process in the subtree */
+	pid_t parent_pid;       /* process id of parent */
+	pid_t pid;              /* process id */
+	uid_t uid;              /* user id of process owner */
+	char comm[16];          /* name of program executed */
+	int level;              /* level of this process in the subtree */
 };
 #endif
