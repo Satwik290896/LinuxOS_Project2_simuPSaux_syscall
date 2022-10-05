@@ -1,0 +1,18 @@
+1. https://www.linuxquestions.org/questions/ubuntu-63/make-no-rule-to-make-target-379801/
+2. https://www.linuxjournal.com/article/6930
+3. https://stackoverflow.com/questions/34704761/why-sibling-list-is-used-to-get-the-task-struct-while-fetching-the-children-of-a
+4. https://stackoverflow.com/questions/15881209/linux-kernel-mode-string-copy
+5. https://stackoverflow.com/questions/29565235/how-to-get-access-to-some-of-the-information-of-current-process-in-linux-kernel
+6. https://stackoverflow.com/questions/33445815/getting-a-user-id-and-a-process-group-id-from-a-task-struct-and-a-pid-namespace
+7. https://stackoverflow.com/questions/4452299/sleep-in-a-while-loop-gets-its-own-pid
+8. https://geek-university.com/list-all-running-processes/
+9. https://wiki.ubuntu.com/systemd
+
+Mohsin Rizvi
+mkr2151
+
+Sai Satwik Vaddi
+sv2665
+
+Chun-Wei Shaw
+cs4213
