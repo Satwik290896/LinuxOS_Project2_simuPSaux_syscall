@@ -38,6 +38,10 @@ int ptree_bfs_internal(struct prinfo *buffer,
 	struct task_struct *task;
 
 	p = get_root(buffer[*buf_q].pid);
+
+	if (p == NULL)
+		return -ESRCH;
+
 	list_for_each(list, &p->children) {
 		if (*actual_entries >= max_entries)
 			return -1;
