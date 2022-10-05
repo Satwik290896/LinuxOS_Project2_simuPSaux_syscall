@@ -1,24 +1,26 @@
-#f22-hmwk2-team27
+# f22-hmwk2-team27
 ## "master" branch
 Master branch contains Linux kernal of version "5.10.138" along with an additional system call by name "ptree" with syscall number "441". It is implemented in both x86 and ARM architectures.
-##Systemcall "ptree"
+## Systemcall "ptree"
 A general description of syscall "ptree" is as below - 
 ```
 int ptree(struct prinfo *buf, int *nr, int root_pid);
 ```
-##Arguments of ptree
-1. *buf*:  It points to a buffer to store the process tree's data. The data stored inside the buffer will be in BFS order: processes at a higher level (level 0 is considered to be higher than level 10) should appear before processes at a lower level.
-2. *nr*:  It represents the allowed size of the buffer 'buf'. The system call copies at most that many entries of the process tree data to the buffer and stores the number of entries actually copied in nr.
-3. *root_pid*: It represents the pid of the root of the subtree the syscall is required to traverse. 
-##Return Value
+## Implementation
+The system call "ptree" is implemented in "kernel/ptree.c"
+## Arguments of ptree
+1. **buf**:  It points to a buffer to store the process tree's data. The data stored inside the buffer will be in BFS order: processes at a higher level (level 0 is considered to be higher than level 10) should appear before processes at a lower level.
+2. **nr**:  It represents the allowed size of the buffer 'buf'. The system call copies at most that many entries of the process tree data to the buffer and stores the number of entries actually copied in nr.
+3. **root_pid**: It represents the pid of the root of the subtree the syscall is required to traverse. 
+## Return Value
 System call "ptree" -
-1. returns 0 on success.
-2. returns EINVAL: if buf or nr are null, or if the number of entries is less than 1
-3. returns EFAULT: if buf or nr are outside the accessible address space.
+1. returns **0** on success.
+2. returns **-EINVAL**: if buf or nr are null, or if the number of entries is less than 1
+3. returns **-EFAULT**: if buf or nr are outside the accessible address space.
 
 
 
-#Linux kernel
+# Linux kernel
 ============
 
 There are several guides for kernel developers and users. These guides can
