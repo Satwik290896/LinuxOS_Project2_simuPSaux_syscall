@@ -57,7 +57,7 @@ int ptree_bfs_internal(struct prinfo *buffer,
 SYSCALL_DEFINE3(ptree, struct prinfo __user *, buf, int __user *, nr,
 		int, root_pid)
 {
-	struct task_struct *root_task = get_root(root_pid);
+	struct task_struct *root_task;
 	int max_entries;
 	int actual_entries = 0;
 	struct prinfo *buffer;
@@ -68,9 +68,6 @@ SYSCALL_DEFINE3(ptree, struct prinfo __user *, buf, int __user *, nr,
 	if (buf == NULL || nr == NULL)
 		return -EINVAL;
 
-	if (root_task == NULL)
-		return -ESRCH;
-
 	/* copy *nr from user space into max_entries */
 	if (copy_from_user(&max_entries, nr, sizeof(int)))
 		return -EFAULT;
@@ -80,6 +77,10 @@ SYSCALL_DEFINE3(ptree, struct prinfo __user *, buf, int __user *, nr,
 
 	if (root_pid < 0)
 		return -EINVAL;
+
+	root_task = get_root(root_pid);
+	if (root_task == NULL)
+		return -ESRCH;
 
 	buffer = kmalloc_array(max_entries, sizeof(struct prinfo), GFP_KERNEL);
 	if (!buffer)
