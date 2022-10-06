@@ -40,7 +40,7 @@ int ptree_bfs_internal(struct prinfo *buffer,
 	p = get_root(buffer[*buf_q].pid);
 
 	if (p == NULL)
-		return -ESRCH;
+		return -2;
 
 	list_for_each(list, &p->children) {
 		if (*actual_entries >= max_entries)
@@ -78,6 +78,9 @@ SYSCALL_DEFINE3(ptree, struct prinfo __user *, buf, int __user *, nr,
 	if (max_entries < 1)
 		return -EINVAL;
 
+	if (root_pid < 0)
+		return -EINVAL;
+
 	buffer = kmalloc_array(max_entries, sizeof(struct prinfo), GFP_KERNEL);
 	if (!buffer)
 		return -ENOMEM;
@@ -95,9 +98,13 @@ SYSCALL_DEFINE3(ptree, struct prinfo __user *, buf, int __user *, nr,
 	 *     add the child into buffer, for up to *nr total processes
 	 */
 	while (buffer[buf_q].pid >= 0 && actual_entries < max_entries) {
-		if (ptree_bfs_internal(buffer, p, max_entries,
-				       &actual_entries, &buf_q) == -1)
+		int result = ptree_bfs_internal(buffer, p, max_entries,
+						&actual_entries, &buf_q);
+
+		if (result == -1)
 			break;
+		else if (result == -2)
+			return -ESRCH;
 	}
 
 	rcu_read_unlock();
